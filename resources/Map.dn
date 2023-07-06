@@ -1,0 +1,5 @@
+interface Map
+{
+    void start()
+    void work()
+}

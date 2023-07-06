@@ -1,0 +1,23 @@
+component provides App, Map
+{    
+    implementation Map
+    {
+        void Map:start()
+        {
+            // int a = 10
+        }
+        
+        void Map:work()
+        {
+            // int b = 10
+        }
+    }
+
+    implementation App
+    {        
+        int App:main(AppParam params[])
+        {
+            return 0
+        }
+    }
+}

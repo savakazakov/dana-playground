@@ -1,0 +1,59 @@
+data Person
+{
+    char name[]
+    int age
+}
+
+data Address
+{
+    char streetName[]
+    int houseNumber
+}
+
+interface FirstInterface
+{
+    void printNum()
+}
+
+// component provides App/* , FirstInterface *//* (AdaptEvents) */ requires io.Output out/* , data.IntUtil iu */
+component provides App, FirstInterface requires io.Output out, data.IntUtil iu, data.StringUtil
+{
+    implementation App
+    {
+        int App:main(AppParam params[])
+        {
+            Person p = new Person("Sava", 22)
+            Address a = new Address("Parkfield Drive", 1)
+
+            out.println("The person's name is $(p.name) and their age is $(p.age)")
+
+            p = a
+
+            out.println("The person's name after assignment is $(p.name) and their age is $(p.age)")
+            
+            String str = new String("Hi")
+            Data myData = str
+            String newStr = myData
+
+            out.println("This is the string: $(newStr.string)")
+
+            return 0
+        }
+    }
+
+    implementation FirstInterface
+    {
+        void FirstInterface:printNum()
+        {
+            out.println("This is being printed from printNum")
+        }
+    }
+
+    /* implementation FirstInterface
+    {
+        void FirstInterface:printNum(int numberToPrint)
+        {
+            out.println("This is being printed from printNum.")
+        }
+    } */
+}

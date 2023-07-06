@@ -1,0 +1,42 @@
+data Canvas
+{
+    int width
+    int height
+}
+
+data Point
+{
+    int x
+    int y
+}
+
+interface GraphicsObject
+{
+    void paint(Canvas c)
+    void setPosition(int x, int y)
+    Point getPosition()
+}
+
+interface Button extends GraphicsObject
+{
+    void setText(char text[])
+    char[] getText()
+}
+
+component provides Button requires GraphicsObject
+{
+    char myText[]
+    
+    implementation Button
+    {
+        void Button:setText(char text[])
+        {
+            myText = clone text
+        }
+        
+        char[] Button:getText()
+        {
+            return myText
+        }
+    }
+}
