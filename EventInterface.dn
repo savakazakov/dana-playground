@@ -1,0 +1,18 @@
+uses data.String
+
+component provides EventInterface requires time.Timer timer
+{
+    void eventProducer()
+    {
+        while (true)
+        {
+            timer.sleep(10000)
+            emitevent funEvent(new String("This is from EventInterface.dn"))
+        }
+    }
+
+    EventInterface:EventInterface()
+    {
+        asynch::eventProducer()
+    }
+}

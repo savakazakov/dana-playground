@@ -1,0 +1,7 @@
+uses data.String
+
+interface EventInterface
+{
+    EventInterface()
+    event funEvent(String str)
+}
