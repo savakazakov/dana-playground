@@ -1,0 +1,22 @@
+uses Adder
+
+component provides App requires io.Output out, data.IntUtil intUtil, Loader loader
+{
+    int App:main(AppParam params[])
+    {
+        IDC com = loader.load("MyAdder.o")
+        
+        // Dynamically instantiate an object using an interface from com (see below)...
+
+        Adder a
+
+        if (com.hasProvides("Adder"))
+        {
+            a = new Adder() from com
+            int q = a.add(5, 6)
+            out.println("result: $(q)")
+        }     
+        
+        return 0
+    }
+}

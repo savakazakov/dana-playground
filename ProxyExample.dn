@@ -1,0 +1,37 @@
+component provides lang.Proxy(composition.InterceptEvents) requires io.Output out, data.IntUtil iu, lang.Morph morph
+{    
+    eventsink EventPass(EventData ed)
+    {
+        out.println("[[intercept event $(ed.type)]]")
+        
+        emitevent:.ed.type(ed.details)
+    }
+    
+    void Proxy:construct(FunctionCall callData, Data result)
+    {
+        sinkevent EventPass(morph)
+        
+        out.print("[[construct]]")
+        
+        function(callData, result)
+    }
+    
+    void Proxy:function(FunctionCall callData, Data result)
+    {
+        out.println("[[intercept $(callData.name)]]")
+        
+        TypeField cNdx = callData.index
+        
+        //check for a void function; collect the return value if it isn't one
+        if (callData.type.fields[0].type.class != Type.INTEGER || callData.type.fields[0].type.size != 0)
+            result:.0 = morph:.cNdx(callData.params)
+        else
+            morph:.cNdx(callData.params)
+    }
+
+    void InterceptEvents:setTarget(Object o)
+    {
+        morph = o
+        sinkevent EventPass(morph)
+    }
+}

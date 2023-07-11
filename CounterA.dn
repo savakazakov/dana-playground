@@ -1,0 +1,8 @@
+component provides Counter
+{    
+    int Counter:getNext()
+    {
+        number ++
+        return number
+    }
+}

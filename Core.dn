@@ -1,0 +1,7 @@
+component provides Core requires io.Output out, data.IntUtil iu, Counter counter
+{
+    void Core:call()
+    {
+        out.println("next number: $(counter.getNext())")
+    }
+}

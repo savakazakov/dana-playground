@@ -1,0 +1,116 @@
+data Person
+{
+    char name[]
+    int age
+}
+
+component provides App requires io.Output out, data.StringUtil su, data.IntUtil iu
+{
+    int App:main(AppParam params[])
+    {
+        Person person = new Person("Sava", 22)
+        out.println("Value before typefield manipulation = $(person.name), $(person.age)")
+
+        TypeField nameTf = Person.[name]
+        TypeField ageTf = Person.[age]
+
+        // Works.
+        person.name = "Barry"
+
+        // How do I do this?
+        // out.println((new String("Barry")).string)
+
+        // Doesn't work, but compiles.
+        person:.nameTf = "Barry"
+
+        // Doesn't work, but compiles.
+        person:.0 = "Barry"
+
+        // Works.
+        // char str[] = "Barry"
+        // person:.0 = str
+
+        // Works.
+        person:.ageTf = 25
+
+        out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+
+        person.name = "Charlie"
+        person.age = 19
+
+        out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+
+        // Types
+
+        Type personType = typeof(person)
+
+        out.println("Fields: $(personType.fields[0].name), $(personType.fields[1].name)")
+
+        // Doesn't work and probably doesn't make sense.
+        // personType.name = "Dan"
+        // personType.age = 33
+
+        // personType:.0 = "Dan"
+        // personType:.1 = 33
+
+        Data newPerson = new Data() from personType
+
+        // What is the most complicated way to do it?
+        // Doesn't compile.
+        TypeField nameTypeField = Person.[name]
+        TypeField ageTypeField = Person.[age]
+
+        char exampleName[] = "Dan"
+        newPerson:.nameTypeField = exampleName
+        // Why does it complain about the following line, but not the top one?
+        // newPerson.ageTypeField = 33
+
+        // Doesn't compile.
+        // newPerson.name = "Dan"
+        // newPerson.age = 33
+
+        // Compiles, but throws an Exception.
+        // newPerson:.0 = nameTf
+        // newPerson:.1 = ageTf
+
+        // Doesn't compile.
+        char str[] = "Dan"
+        newPerson:.0 = str
+        newPerson:.1 = ageTf
+
+        newPerson:.0 = "Dan"
+        newPerson:.1 = 33
+
+        // Doesn't compile.
+        // out.println("Type result = $(newPerson.name), $(newPerson.age)")
+
+        // Doesn't work, but compiles.
+        out.println("Type result = $(newPerson:.0), $(newPerson:.1)")
+
+        // Doesn't compile.
+        // out.println("Type result = $(newPerson:.name), $(newPerson:.age)")
+
+        // Type Construction.
+
+        Type newType = new Type()
+        newType.class = Type.DATA
+
+        newType.fields = new Field[2]
+
+        newType.fields[0] = new Field(new Type(Type.INTEGER, 0, 8), "alpha")
+        newType.fields[1] = new Field(new Type(Type.DECIMAL, 0, 16), "beta")
+
+        Data newData = new Data() from newType
+
+        // Again, doesn't compile.
+        // out.println("newData: $(newData.alpha), $(newData.beta)")
+        out.println("newData: $(newData:.0), $(newData:.1)")
+
+        newData.alpha = 10
+        newData.beta = -1.2
+
+        out.println("newData after assignment: $(newData.alpha), $(newData.beta)")
+        
+        return 0
+    }
+}

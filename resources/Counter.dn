@@ -1,0 +1,5 @@
+interface Counter
+{
+    transfer int number
+    int getNext()
+}

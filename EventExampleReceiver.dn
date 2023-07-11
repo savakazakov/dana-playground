@@ -6,8 +6,9 @@ component provides App requires io.Output out, EventInterface
     {
 		if (ed.type == EventInterface.[funEvent])
         {
-			out.println("Message from event: $(ed.details.toString())")
-            out.println("Source: $(ed.source.toString())")
+            String someString = ed.details
+			out.println("Message from event: $(someString.string)")
+            out.println("Source: $(ed.source.getId)")
         }
     }
 

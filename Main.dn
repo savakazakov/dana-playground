@@ -1,0 +1,37 @@
+uses Core
+
+component provides App requires Loader loader, io.Output out, time.Timer timer, composition.Adapt adapt
+{    
+    int App:main(AppParam param[])
+    {
+        // Load the components that we'll be using.
+        IDC myComponent = loader.load("Core.o")
+        
+        IDC variantA = loader.load("CounterA.o")
+        IDC variantB = loader.load("CounterB.o")
+        
+        // Bind our required interface to its initial configuration.
+        myComponent.wire("Counter", variantA, "Counter")
+        
+        Core myObject = new Core() from myComponent
+        
+        // Test out adaptation.
+        bool alpha = true
+
+        while(true)
+        {
+            timer.sleep(1000)
+            
+            if (alpha)
+                adapt.adaptRequiredInterface(myComponent, "Counter", variantA)
+            else
+                adapt.adaptRequiredInterface(myComponent, "Counter", variantB)
+            
+            alpha = !alpha
+            
+            myObject.call()
+        }
+        
+        return 1
+    }
+}
