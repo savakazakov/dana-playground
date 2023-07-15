@@ -9,7 +9,7 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
     int App:main(AppParam params[])
     {
         Person person = new Person("Sava", 22)
-        out.println("Value before typefield manipulation = $(person.name), $(person.age)")
+        // out.println("Value before typefield manipulation = $(person.name), $(person.age)")
 
         TypeField nameTf = Person.[name]
         TypeField ageTf = Person.[age]
@@ -18,33 +18,34 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
         person.name = "Barry"
 
         // How do I do this?
+        // "It's a bug"
         // out.println((new String("Barry")).string)
 
-        // Doesn't work, but compiles.
+        // // Doesn't work, but compiles.
         person:.nameTf = "Barry"
 
-        // Doesn't work, but compiles.
-        person:.0 = "Barry"
+        // // Doesn't work, but compiles.
+        // person:.0 = "Barry"
 
         // Works.
         // char str[] = "Barry"
         // person:.0 = str
 
-        // Works.
+        // // Works.
         person:.ageTf = 25
 
-        out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+        // out.println("Value after typefield manipulation = $(person.name), $(person.age)")
 
         person.name = "Charlie"
         person.age = 19
 
-        out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+        // out.println("Value after typefield manipulation = $(person.name), $(person.age)")
 
         // Types
 
         Type personType = typeof(person)
 
-        out.println("Fields: $(personType.fields[0].name), $(personType.fields[1].name)")
+        // out.println("Fields: $(personType.fields[0].name), $(personType.fields[1].name)")
 
         // Doesn't work and probably doesn't make sense.
         // personType.name = "Dan"
@@ -62,6 +63,8 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
 
         char exampleName[] = "Dan"
         newPerson:.nameTypeField = exampleName
+
+        // Person p = newPerson
         // Why does it complain about the following line, but not the top one?
         // newPerson.ageTypeField = 33
 
@@ -74,18 +77,18 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
         // newPerson:.1 = ageTf
 
         // Doesn't compile.
-        char str[] = "Dan"
-        newPerson:.0 = str
-        newPerson:.1 = ageTf
+        // char str[] = "Dan"
+        // newPerson:.0 = str
+        // newPerson:.1 = ageTf
 
-        newPerson:.0 = "Dan"
-        newPerson:.1 = 33
+        // newPerson:.0 = "Dan"
+        // newPerson:.1 = 33
 
         // Doesn't compile.
         // out.println("Type result = $(newPerson.name), $(newPerson.age)")
 
         // Doesn't work, but compiles.
-        out.println("Type result = $(newPerson:.0), $(newPerson:.1)")
+        // out.println("Type result = $(newPerson:.0), $(newPerson:.1)")
 
         // Doesn't compile.
         // out.println("Type result = $(newPerson:.name), $(newPerson:.age)")
@@ -106,10 +109,10 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
         // out.println("newData: $(newData.alpha), $(newData.beta)")
         out.println("newData: $(newData:.0), $(newData:.1)")
 
-        newData.alpha = 10
-        newData.beta = -1.2
+        newData:.0 = 10
+        newData:.1 = -1.2
 
-        out.println("newData after assignment: $(newData.alpha), $(newData.beta)")
+        // out.println("newData after assignment: $(newData.alpha), $(newData.beta)")
         
         return 0
     }
