@@ -1,0 +1,12 @@
+interface CSVUtilExtension
+{
+    bool addColumn(File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[])
+    bool addRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data values[])
+    
+    // TODO:
+    // overrideCell()
+    // overrideColumn()
+    // overrideRow()
+    // removeColumn()
+    // removeRow()
+}

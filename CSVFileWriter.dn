@@ -25,12 +25,13 @@ component provides App requires io.Output out, io.Input in, io.File, data.IntUti
             for (int j = 0; j < random; j++) {
                 // Some work.
                 int temp = i * 10 + j + temp
-                out.print("$(temp)")                
+                // out.print("$(temp)\n")
             }
 
             curTimestamp = chd.getTime().nanoseconds
 
-            f.write("$(i), $(curTimestamp)\n")
+            out.print("$(curTimestamp)\n")
+            f.write("$(i), $(curTimestamp - prevTimestamp)\n")
 
             prevTimestamp = curTimestamp
         }

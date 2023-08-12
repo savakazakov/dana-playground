@@ -1,0 +1,33 @@
+component provides CSVUtilExtension requires data.csv.CSVParser io.Output out, io.Input in, io.File,
+data.IntUtil iu, util.Random rand, time.ClockHD {
+        bool addColumn(File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[]) {
+            // Build the new type.
+            // Check if the values array is of a type that has a single field.
+            if (typeof(values[0]).fields.arrayLength != 1) {
+                throw new Exception("New column is of composite type.")
+                return false
+                }
+
+            // Get the type of the current csv file from the template and add the additional field for the new column.
+            Type templateType = typeof(template)
+
+            Type newType
+            newType.fields = new Fields(dana.sub(templateType.fields, 0, columnNumber), typeof(values[0]).fields,
+                                        dana.sub(templateType.fields, columnNumber + 2, ))
+
+            for (int i = 0; i < templateType.fields.arrayLength - columnNumber; i++) {
+
+                }
+
+
+
+
+            // Parse the csv file.
+            // Loop through the returned array and expand the 
+            return false
+            }   
+        
+        bool addeRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data values[]) {
+            return false
+            }
+    }
