@@ -1,33 +1,99 @@
-component provides CSVUtilExtension requires data.csv.CSVParser io.Output out, io.Input in, io.File,
-data.IntUtil iu, util.Random rand, time.ClockHD {
-        bool addColumn(File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[]) {
-            // Build the new type.
-            // Check if the values array is of a type that has a single field.
-            if (typeof(values[0]).fields.arrayLength != 1) {
-                throw new Exception("New column is of composite type.")
-                return false
-                }
+uses data.String
 
-            // Get the type of the current csv file from the template and add the additional field for the new column.
-            Type templateType = typeof(template)
+component provides CSVUtilExtension requires data.csv.CSVParser, io.Output out, io.Input in, io.File,
+data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su, util.Math math {
 
-            Type newType
-            newType.fields = new Fields(dana.sub(templateType.fields, 0, columnNumber), typeof(values[0]).fields,
-                                        dana.sub(templateType.fields, columnNumber + 2, ))
+    const int dataTypeSizes[] = new int[](1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)
 
-            for (int i = 0; i < templateType.fields.arrayLength - columnNumber; i++) {
-
-                }
-
-
-
-
-            // Parse the csv file.
-            // Loop through the returned array and expand the 
-            return false
-            }   
+    bool CSVUtilExtension:addColumn(char filename[], bool hasHeaderLine, char separators[],
+                                    int columnNumber, Type columnType, byte serialisedData[]) {
+        // const int SIZE = 100
+        // int array[SIZE] = new int[]()
         
-        bool addeRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data values[]) {
-            return false
+        // Build the column to be added.
+        if (columnType.class == Type.INTEGER || columnType.class == Type.DECIMAL) {
+            // TODO: finish this!
+
+            // Calculate the length of the integer array.
+            const int columnLength = serialisedData.arrayLength / columnType.size
+            // TODO: Fix this.
+            int columnValues[1000] =[] serialisedData
+
+            // TODO: Do the flags. I presume they are a bitmask
             }
+            else {
+            throw new Exception("Unsupported column type.")    
+            }
+
+        // TODO: Explain the convention.
+            // no commas in the name
+            // Ends with "Int", "Dec", "Bool", "Char", "Str"
+        // TODO: What if there is no header line.
+        // TODO: What if file doesn't exist.
+        // TODO: make column number optional.
+
+        // Infer the types of the columns in the csv file and build the data template.
+        Type templateType = new Type()
+
+        // Get the header line.
+        TextFile csvFile = new TextFile(filename, File.WRITE)
+        char headerLine[] = csvFile.readLine()
+
+        // String columnNames[] = su.explode(headerLine, ",")
+        String columnNames[] = new String[](new String("something_Int64"), new String("aksdhfjInt2Dec4"))
+
+        for (int i = 0; i < columnNames.arrayLength; i++) {
+            // Extract the datatype information from the column names.
+            for (int j = 0; j < dataTypeSizes.arrayLength; j++) {
+                if (su.endsWith(su.trim(columnNames[i].string), "Int$(dataTypeSizes[j])")) {
+                    templateType.fields = new Field[](templateType.fields,
+                                                      new Field(new Type(Type.INTEGER, 0, math.power(2, j)),
+                                                                columnNames[i].string))
+                    }
+                    else if (su.endsWith(su.trim(columnNames[i].string), "Dec$(dataTypeSizes[j])")) {
+                    templateType.fields = new Field[](templateType.fields,
+                                                      new Field(new Type(Type.DECIMAL, 0, math.power(2, j)),
+                                                                columnNames[i].string))
+                    }
+                }
+
+
+            }
+
+        // out.print("Header line = $(headerLine).")
+
+        // // Build the new type.
+        // // Check if the values array is of a type that has a single field.
+        // if (typeof(columnValue).fields.arrayLength != 1) {
+        //     throw new Exception("New column is of composite type.")
+        //     return false
+        //     }
+
+        // // Get the type of the current csv file from the template and add the additional field for the new column.
+        // Type templateType = typeof(template)
+
+        // Type newType
+        // newType.fields = new Field[](dana.sub(templateType.fields, 0, columnNumber), typeof(columnValue).fields,
+        //                              dana.sub(templateType.fields, columnNumber + 2, templateType.fields.arrayLength + 1))
+
+        // out.print("The templateType array length: $(templateType.fields.arrayLength)")
+        // out.print("The newType array length: $(newType.fields.arrayLength)")
+
+        // for (int i = 0; i < newType.fields.arrayLength; i++) {
+        //     out.print("Field $(i) = $(newType.fields[i].name)")
+        //     }
+
+        // for (int i = 0; i < templateType.fields.arrayLength - columnNumber; i++) {
+
+        //     }
+
+        // Parse the csv file.
+        // TODO: Check to see if the new column has compatible size.
+        // Loop through the returned array and expand the 
+        return false
+        }   
+    
+    // bool CSVUtilExtension:addRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data rowValue[]) {
+    //     return false
+    //     }
     }

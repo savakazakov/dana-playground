@@ -1,7 +1,17 @@
+uses io.File
+
 interface CSVUtilExtension
 {
-    bool addColumn(File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[])
-    bool addRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data values[])
+    bool addColumn(char filename[], bool hasHeaderLine, char separators[], int columnNumber, Type columnType, byte serialisedData[])
+    // bool addIntColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, int columnValues[])
+    // bool addDecColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, dec columnValues[])
+    // bool addIntRow(File fd, bool hasHeaderLine, char separators[], int rowNumber, int rowValues[])
+    // bool addDecRow(File fd, bool hasHeaderLine, char separators[], int rowNumber, dec rowValues[])
+    // bool test(Data values[])
+
+    //
+    // Data[] wrapIntInData(int array[])
+    // Data[] wrapDecInData(dec array[])
     
     // TODO:
     // overrideCell()

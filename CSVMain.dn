@@ -1,0 +1,28 @@
+data myData {
+    int number
+    char character
+    }
+
+component provides App requires Loader loader, io.Output out, data.DecUtil du, CSVUtilExtension cue, io.File {    
+    int App:main(AppParam param[]) {
+        // File f = new File("test2.csv", File.READ)
+
+        // bool hasHeaderLine = true
+        // int columnNumber = 1
+        dec newColumn[] = new dec[](1.2, 2.3, 3.4)
+        // File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[]
+        // myData md = new myData(1, "c")
+        // Data oldData = new myData(1, "c")
+
+        // Try and create a wrapper for a primitive type
+        // Data newData = new Data() from typeof(newColumn[0])
+        // Data values[] = new Data[](newColumn)
+        // Data values[] = new Data[] from typeof(myData)
+
+        // cue.addColumn(f, hasHeaderLine, new char[](","), oldData, columnNumber, newData)
+
+        cue.addColumn("test2.csv", true, ",", 1, typeof(newColumn[0]), dana.serial(newColumn))
+
+        return 0
+        }
+    }

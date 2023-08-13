@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+dnc CSVUtilExtension.dn 
+dnc CSVMain.dn 
+dana CSVMain
