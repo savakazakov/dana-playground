@@ -1,12 +1,14 @@
 uses data.String
 
-component provides CSVUtilExtension requires data.csv.CSVParser, io.Output out, io.Input in, io.File,
+component provides CSVUtilExtension requires data.csv.CSVParser parser, io.Output out, io.Input in, io.File,
 data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su, util.Math math {
 
+    // Used to check the 
     const int dataTypeSizes[] = new int[](1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)
 
     bool CSVUtilExtension:addColumn(char filename[], bool hasHeaderLine, char separators[],
-                                    int columnNumber, Type columnType, byte serialisedData[]) {
+                                    Type columnType, Data wrappedData[],
+                                    opt char columnName[] = "NewColumn", opt int columnNumber = 1) {
         // const int SIZE = 100
         // int array[SIZE] = new int[]()
         
@@ -15,9 +17,9 @@ data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su
             // TODO: finish this!
 
             // Calculate the length of the integer array.
-            const int columnLength = serialisedData.arrayLength / columnType.size
+            const int columnLength = wrappedData.arrayLength / columnType.size
             // TODO: Fix this.
-            int columnValues[1000] =[] serialisedData
+            int columnValues[1000] =[] wrappedData
 
             // TODO: Do the flags. I presume they are a bitmask
             }
@@ -30,17 +32,18 @@ data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su
             // Ends with "Int", "Dec", "Bool", "Char", "Str"
         // TODO: What if there is no header line.
         // TODO: What if file doesn't exist.
-        // TODO: make column number optional.
+        // TODO: Provide defaults for the optional parameters.
 
         // Infer the types of the columns in the csv file and build the data template.
         Type templateType = new Type()
+        templateType.class = Type.DATA
 
         // Get the header line.
         TextFile csvFile = new TextFile(filename, File.WRITE)
         char headerLine[] = csvFile.readLine()
 
-        // String columnNames[] = su.explode(headerLine, ",")
-        String columnNames[] = new String[](new String("something_Int64"), new String("aksdhfjInt2Dec4"))
+        String columnNames[] = su.explode(headerLine, ",")
+        // String columnNames[] = new String[](new String("something_Int64"), new String("aksdhfjInt2Dec4"))
 
         for (int i = 0; i < columnNames.arrayLength; i++) {
             // Extract the datatype information from the column names.
@@ -48,17 +51,80 @@ data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su
                 if (su.endsWith(su.trim(columnNames[i].string), "Int$(dataTypeSizes[j])")) {
                     templateType.fields = new Field[](templateType.fields,
                                                       new Field(new Type(Type.INTEGER, 0, math.power(2, j)),
-                                                                columnNames[i].string))
+                                                                su.trim(columnNames[i].string)))
+                    break
                     }
                     else if (su.endsWith(su.trim(columnNames[i].string), "Dec$(dataTypeSizes[j])")) {
                     templateType.fields = new Field[](templateType.fields,
                                                       new Field(new Type(Type.DECIMAL, 0, math.power(2, j)),
-                                                                columnNames[i].string))
+                                                                su.trim(columnNames[i].string)))
+                    break
+                    }
+                    else if (su.endsWith(su.trim(columnNames[i].string), "Str")) {
+                    Type charArrayType = new Type(Type.ARRAY, 0, 0, new Field(new Type(Type.INTEGER, Type.F_CHAR, 1)))
+                    templateType.fields = new Field[](templateType.fields, new Field(charArrayType, su.trim(columnNames[i].string)))
+                    break
+                    }
+                    else if (j == dataTypeSizes.arrayLength - 1) {
+                    throw new Exception("Unsupported csv data type at column: $(i)")
                     }
                 }
-
-
             }
+
+        // Reset the read position, since the header line has been read.
+        csvFile.setPos(0)
+
+        // Parse the csv file.
+        Data template = new Data() from templateType
+        Data csvData[] = parser.parseDocument(csvFile, hasHeaderLine, separators, template)
+
+        // // Check if the csv data was parsed correctly.
+        // for (int i = 0; i < csvData.arrayLength; i++) {
+        //     for (int j = 0; j < typeof(csvData[0]).fields.arrayLength; j++) {
+        //         out.print("$(csvData[i]:.j) ")
+        //         }
+        //         out.print("\n")
+        //     }
+
+        // Construct the new data type for the resulting csv file.
+        Type newTemplateType = new Type(Type.DATA, 0, 0,
+                                        new Field[](dana.sub(templateType.fields, 0, columnNumber - 1),
+                                                    new Field(columnType, columnName),
+                                                    dana.sub(templateType.fields, columnNumber, templateType.fields.arrayLength - 1)))
+
+        // for (int i = 0; i < templateType.fields.arrayLength; i++) {
+        //     out.print("$(templateType.fields[i].name)\n")
+        //     }
+
+        // out.print("\n")
+
+        // for (int i = 0; i < newTemplateType.fields.arrayLength; i++) {
+        //     out.print("$(newTemplateType.fields[i].name)\n")
+        //     }
+
+        // Construct the new csv data and copy the data across.
+        Data newCsvData[] = new Data[csvData.arrayLength] from newTemplateType
+
+        // out.print("newCsvData array length = $(newCsvData.arrayLength)\n")
+        // out.print("newTemplateType.fields.arrayLength = $(newTemplateType.fields.arrayLength)\n")
+        // newCsvData[0] = new Data() from newTemplateType
+        // out.print("newTemplateType.fields.arrayLength = $(typeof(newCsvData))\n")
+
+        for (int i = 0; i < csvData.arrayLength; i++) {
+            for (int j = 0; j < columnNumber - 1; j++) {
+                newCsvData[i]:.j = csvData[i]:.j
+                // out.print("newCsvData[$(i)]:.$(j) = $(newCsvData[i]:.j)\n")
+                }
+
+            // Copy the new column data across.
+            // newCsvData[i]:.j = 
+
+            
+
+                // Add the 
+            }
+
+        // out.print("Total number of rows: $(rows.arrayLength)")
 
         // out.print("Header line = $(headerLine).")
 
@@ -91,7 +157,29 @@ data.IntUtil iu, util.Random rand, time.ClockHD, io.TextFile, data.StringUtil su
         // TODO: Check to see if the new column has compatible size.
         // Loop through the returned array and expand the 
         return false
-        }   
+        }
+
+        Data[] CSVUtilExtension:wrapIntArray(int intArray[]) {
+            // Construct the array cell type.
+            Type cellType = new Type(Type.DATA, 0, 0, new Field(new Type(Type.INTEGER, 0, 1024), "Integer"))
+            // Construct the array type.
+            // TODO: Not sure if this has to have a size.
+            Type arrayType = new Type(Type.ARRAY, 0, 0, new Field(cellType, "WrappedInteger"))
+
+            Data curCell = new Data() from cellType
+            Data curArray[] = new Data[] from arrayType
+
+            for (int i = 0; i < intArray.arrayLength; i++) {
+                curCell:.0 = intArray[i]
+                // curArray = new Data[](curArray, rclone curCell)
+                }
+
+            return null
+            }
+
+        Data[] CSVUtilExtension:wrapDecArray(dec decArray[]) {
+            return null
+            }
     
     // bool CSVUtilExtension:addRow(File fd, bool hasHeaderLine, char separators[], Data template, int rowNumber, Data rowValue[]) {
     //     return false

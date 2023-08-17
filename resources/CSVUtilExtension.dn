@@ -2,7 +2,8 @@ uses io.File
 
 interface CSVUtilExtension
 {
-    bool addColumn(char filename[], bool hasHeaderLine, char separators[], int columnNumber, Type columnType, byte serialisedData[])
+    bool addColumn(char filename[], bool hasHeaderLine, char separators[],
+                   Type columnType, Data wrappedData[], opt char columnName[], opt int columnNumber)
     // bool addIntColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, int columnValues[])
     // bool addDecColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, dec columnValues[])
     // bool addIntRow(File fd, bool hasHeaderLine, char separators[], int rowNumber, int rowValues[])
@@ -12,6 +13,10 @@ interface CSVUtilExtension
     //
     // Data[] wrapIntInData(int array[])
     // Data[] wrapDecInData(dec array[])
+
+    // Data[] deserialise(byte serialData[], Type returnType)
+    Data[] wrapIntArray(int intArray[])
+    Data[] wrapDecArray(dec decArray[])
     
     // TODO:
     // overrideCell()
