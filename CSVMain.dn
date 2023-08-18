@@ -6,145 +6,17 @@ data myData {
 component provides App requires Loader loader, io.Output out, data.DecUtil du, data.IntUtil iu, CSVUtilExtension cue, io.File,
 util.Math math {
     int App:main(AppParam param[]) {
-        // File f = new File("test2.csv", File.READ)
 
+        int myNewData[] = new int[](1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009)
+        // dec myNewData[] = new dec[](1000.0, 1001.0, 1002.0, 1003.0, 1004.0, 1005.0, 1006.0, 1007.0, 1008.0, 1009.0)
 
-        // byte myBytes[] = new byte[](0x1, 0x2, 0x3, 0x4)
-
-        // int4 myInt = myBytes
-
-        // out.print("MyInt = $(myInt)\n")
-
-        // if (myInt == 18)
-        // {
-        //     out.print("YESSS\n")
-        // }
-
-        ////////////////////////////////////////////////////////
-        // What is the user provides the array and there is no return type that way.
-        // opt parsmeters to deserial into 
-        // use data as parameter and create an absurdly long type
-        // Or a data array of wrapped primitive types.
-
-        // Construct the array cell type.
-        Type cellType = new Type(Type.DATA, 0, 0, new Field(int1024, "Integer"))
-
-        Data curCell = new Data from cellType
-
-        int myInteger = 8888
-
-        curCell:.Integer = myInteger
-
-        out.print("Print from data: $(curCell:.Integer)")
-
-        return 0
-
-        int8 myArray[] = new int8[](1, 2, 255, 22)
-
-        byte serialisedArray[] = dana.serial(myArray)
-
-        deserialise(serialisedArray, typeof(myArray))
-
-        int4 myInt[] = 260
-        byte myBytes[] = dana.serial(myInt)
-
-        for (int i = 0; i < myBytes.arrayLength; i++) {
-            out.print("$(myBytes[i])\n")
-            }
-
-        // bool hasHeaderLine = true
-        // int columnNumber = 1
-        int16 newColumn[] = new int16[](239572, 21343, 13534)
-
-        byte serialData[] = dana.serial(newColumn)
-
-        // dana.serial(serialData)
-
-        int16 array[3] =[] clone serialData
-
-        if (array[0] == 239572) {
-            out.print("YES\n")
-            }
-            else {
-            out.print("NO\n")    
-            }
-
-        // out.print("SerialData len = $(serialData.arrayLength)\n")
-
-        // for (int i = 0; i < serialData.arrayLength; i++) {
-        //     out.print("This is byte: $(serialData[i])\n")
+        // int newData[] = dana.sub(myNewData, 0, 9)
+        // for (int i = 0; i < newData.arrayLength; i++) {
+        //     out.print("newData = $(newData[i])\n")
         //     }
 
-        for (int i = 0; i < array.arrayLength; i++) {
-            out.print("This is int: $(array[i])\n")
-            }
-
-        // File fd, bool hasHeaderLine, char separators[], Data template, int columnNumber, Data values[]
-        // myData md = new myData(1, "c")
-        // Data oldData = new myData(1, "c")
-
-        // Try and create a wrapper for a primitive type
-        // Data newData = new Data() from typeof(newColumn[0])
-        // Data values[] = new Data[](newColumn)
-        // Data values[] = new Data[] from typeof(myData)
-
-        // cue.addColumn(f, hasHeaderLine, new char[](","), oldData, columnNumber, newData)
-
-        // Type t = typeof(new)
-
-        // cue.addColumn("test2.csv", true, ",", typeof(newColumn[0]), dana.serial(newColumn), "NewColumn_Dec64", 3)
+        cue.addColumn("test2.csv", true, ",", cue.wrapIntArray(myNewData), "NewColumn", 11)
 
         return 0
         }
-
-        Data[] deserialise(byte serialData[], Type returnType) {
-            // The size of the returned data type.
-            int typeSize
-            // byte tempData = 0x0
-            Data tempData
-            Data deserialisedData[]
-
-            int8 intOne = 10
-            int128 intTwo = 121823452345234523476978656456429
-
-            // intOne = intTwo
-
-            // out.print("$(intOne) - intOne\n")
-
-            intTwo = intOne
-
-            out.print("$(intTwo) - intTwo\n")
-
-            // byte byte1 = 0x1
-            // dec byte2 = 2
-
-            // int result = byte1 & byte2
-
-            // out.print("result = $(result)")
-
-            if (returnType.class == Type.ARRAY) {
-                typeSize = returnType.fields[0].type.size
-                
-                // Build the deserialised data into an array.
-                deserialisedData = new Data[] from returnType/* .fields[0].type */
-                tempData = new Data() from returnType
-                }
-                else if (returnType.class == Type.DATA) {
-                // TODO
-                }
-                else {
-                    throw new Exception("Cannot deserialise the provided type.")
-                }
-
-            for (int i = 0; i < serialData.arrayLength / typeSize; i ++) {
-                for (int j = 0; j < typeSize; j++) {
-                    // tempData = tempData & (math.power(2, 8 * j) * serialData[i * typeSize + j])
-                    }
-
-                    // deserialisedData[i] = tempData
-                    // tempData = null
-                }
-
-            return deserialisedData
-            }
     }

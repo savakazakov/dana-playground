@@ -3,12 +3,19 @@ uses io.File
 interface CSVUtilExtension
 {
     bool addColumn(char filename[], bool hasHeaderLine, char separators[],
-                   Type columnType, Data wrappedData[], opt char columnName[], opt int columnNumber)
+                   Data wrappedData[], opt char columnName[], opt int columnNumber)
     // bool addIntColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, int columnValues[])
     // bool addDecColumn(File fd, bool hasHeaderLine, char separators[], int columnNumber, dec columnValues[])
     // bool addIntRow(File fd, bool hasHeaderLine, char separators[], int rowNumber, int rowValues[])
     // bool addDecRow(File fd, bool hasHeaderLine, char separators[], int rowNumber, dec rowValues[])
     // bool test(Data values[])
+
+    // bool addOptColumn(char filename[], bool hasHeaderLine, char separators[],
+    //                   opt int1 colInt1[], opt int2 colInt2[], opt int4 colInt4[], opt int8 colInt8[], opt int16 colInt16[],
+    //                   opt int32 colInt32[], opt int64 colInt64[], opt int128 colInt128[], opt int256 colInt256[], opt int512 colInt512[],
+    //                   opt dec1 colDec1[], opt dec2 colDec2[], opt dec4 colDec4[], opt dec8 colDec8[], opt dec16 colDec16[],
+    //                   opt dec32 colDec32[], opt dec64 colDec64[], opt dec128 colDec128[], opt dec256 colDec256[], opt dec512 colDec512[],
+    //                   opt String colStr[], opt char columnName[], opt int columnNumber)
 
     //
     // Data[] wrapIntInData(int array[])
@@ -16,7 +23,10 @@ interface CSVUtilExtension
 
     // Data[] deserialise(byte serialData[], Type returnType)
     Data[] wrapIntArray(int intArray[])
+    int[] unwrapIntArray(Data dataArray[])
+    
     Data[] wrapDecArray(dec decArray[])
+    dec[] unwrapDecArray(Data dataArray[])
     
     // TODO:
     // overrideCell()
