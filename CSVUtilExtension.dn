@@ -4,12 +4,15 @@
  * TODO: What if the file doesn't exist.
  * TODO: What if the wrapped data is heterogeneous.
  * TODO: Perform some basic checks for the row data type and if it is the same as the rest of the CSV file.
+ * TODO: Maybe it would be useful to write the data from a column even if it exceeds the current length of the CSV file. DONE
+ * TODO: Fix the above problem for addRow.
  */
 
 uses data.String
 
 component provides CSVUtilExtension requires data.csv.CSVParser parser, io.Output out, io.Input in, io.File,
-data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, io.FileSystem fs, data.StringUtil su, util.Math math {
+data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, io.FileSystem fs, data.StringUtil su, util.Math math,
+stats.StatCore sc {
 
     // Used to check the types of the columns of the CSV file.
     const int dataTypeSizes[] = new int[](1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024)
@@ -18,7 +21,7 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
      * Add a column to a CSV file.
      */
     bool CSVUtilExtension:addColumn(char filename[], bool hasHeaderLine, char separators[], Data wrappedColumn[],
-                                    opt char columnName[] = "NewColumn", opt int columnNumber) {
+                                    opt char columnName[] = "NewColumn", opt int columnNumber, opt bool limitData = true) {
         // Infer the types of the columns in the CSV file and build the data template type.
         Type templateType = inferCSVTemplate(filename)
 
@@ -27,8 +30,7 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
         // Parse the CSV file.
         Data csvData[] = parser.parseDocument(new TextFile(filename, File.WRITE), hasHeaderLine, separators, new Data() from templateType)
 
-        // Check if the new column's dimensions are valid.
-        if (wrappedColumn.arrayLength == 0 || wrappedColumn.arrayLength < csvData.arrayLength) {
+        if (wrappedColumn.arrayLength == 0 || (limitData && wrappedColumn.arrayLength < csvData.arrayLength)) {
             throw new Exception("Parameter \"wrappedColumn\" has insufficient length of $(wrappedColumn.arrayLength).")
             return false
             }
@@ -73,27 +75,84 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
                                        new Field[](templateType.fields, new Field(columnType, columnName)))
             }
             else {
-            throw new Exception("Parameter \"columnNumber\" exceeds the upper index bound of: $(templateLength - 1).")
+            throw new Exception("Parameter \"columnNumber\" exceeds the upper index bound of: $(templateLength).")
             return false
             }
 
-        // Construct the new CSV data and copy the data across.
-        Data newCsvData[] = new Data[csvData.arrayLength] from newTemplateType
+        // Figure out how long the new CSV file is going to be.
+        int newCsvDataLength
 
-        for (int i = 0; i < csvData.arrayLength; i++) {
+        if (limitData) {
+            newCsvDataLength = csvData.arrayLength
+            }
+            else {
+            newCsvDataLength = sc.max(new dec[](du.decFromString("$(csvData.arrayLength)"), du.decFromString("$(wrappedColumn.arrayLength)")))
+            }
+
+        // Construct the new CSV data and copy the data across.
+        Data newCsvData[] = new Data[newCsvDataLength] from newTemplateType
+
+        for (int i = 0; i < newCsvDataLength; i++) {
             newCsvData[i] = new Data() from newTemplateType
 
             // Copy the values before the new column.
             for (int j = 0; j < columnNumber; j++) {
-                newCsvData[i]:.j = csvData[i]:.j
+                if (i < csvData.arrayLength) {
+                    newCsvData[i]:.j = csvData[i]:.j
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.ARRAY && 
+                             newTemplateType.fields[j].type.fields[0].type.flags == Type.F_CHAR){
+                    newCsvData[i]:.j = "null"
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.INTEGER) {
+                    newCsvData[i]:.j = 0
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.DECIMAL) {
+                    newCsvData[i]:.j = 0.0
+                    }
+                    else {
+                    throw new Exception("Unexpected column type at column number: $(j).")
+                    return false
+                    }
                 }
 
             // Copy the new column value.
-            newCsvData[i]:.columnNumber = wrappedColumn[i]:.0
+            if (i < wrappedColumn.arrayLength) {
+                newCsvData[i]:.columnNumber = wrappedColumn[i]:.0
+                }
+                else if (columnType.class == Type.ARRAY && columnType.fields[0].type.flags == Type.F_CHAR) {
+                newCsvData[i]:.columnNumber = "null"
+                }
+                else if (columnType.class == Type.INTEGER) {
+                newCsvData[i]:.j = 0
+                }
+                else if (columnType.class == Type.DECIMAL) {
+                newCsvData[i]:.j = 0.0
+                }
+                else {
+                throw new Exception("Unexpected column type at column number: $(columnNumber).")
+                return false
+                }
 
             // Copy the values after the new column.
             for (int j = columnNumber; j < templateLength; j++) {
-                newCsvData[i]:.(j + 1) = csvData[i]:.j
+                if (i < csvData.arrayLength) {
+                    newCsvData[i]:.(j + 1) = csvData[i]:.j
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.ARRAY && 
+                             newTemplateType.fields[j].type.fields[0].type.flags == Type.F_CHAR){
+                    newCsvData[i]:.(j + 1) = "null"
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.INTEGER) {
+                    newCsvData[i]:.(j + 1) = 0
+                    }
+                    else if (newTemplateType.fields[j].type.class == Type.DECIMAL) {
+                    newCsvData[i]:.(j + 1) = 0.0
+                    }
+                    else {
+                    throw new Exception("Unexpected column type at column number: $(j).")
+                    return false
+                    }
                 }
             }
 
@@ -107,8 +166,8 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
     /**
      * Add a row to a CSV file.
      */
-    bool CSVUtilExtension:addRow(char filename[], bool hasHeaderLine, char separators[],
-                                 Data wrappedRow, opt int rowNumber) {
+    bool CSVUtilExtension:addRow(char filename[], bool hasHeaderLine, char separators[], Data wrappedRow,
+                                 opt int rowNumber, opt bool limitData = true) {
         // Infer the types of the columns in the CSV file and build the data template type.
         Type templateType = inferCSVTemplate(filename)
 
@@ -211,7 +270,7 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
         Type cellType = new Type(Type.DATA, 0, 0, new Field(new Type(Type.INTEGER, 0, size), "Integer"))
         // Construct the array type.
         // TODO: Not sure if this has to have a size.
-        Type arrayType = new Type(Type.ARRAY, 0, 0, new Field(cellType, "WrappedInteger"))
+        Type arrayType = new Type(Type.ARRAY, 0, 0, new Field[](new Field(cellType, "WrappedInteger")))
 
         Data curCell = new Data() from cellType
         Data curArray[] = new Data[] from arrayType
@@ -249,15 +308,19 @@ data.IntUtil iu, data.DecUtil du, util.Random rand, time.ClockHD, io.TextFile, i
             Type cellType = new Type(Type.DATA, 0, 0, new Field(new Type(Type.DECIMAL, 0, size), "Decimal"))
             // Construct the array type.
             // TODO: Not sure if this has to have a size.
-            Type arrayType = new Type(Type.ARRAY, 0, 0, new Field(cellType, "WrappedDecimal"))
+            Type arrayType = new Type(Type.ARRAY, 0, 0, new Field[](new Field(cellType, "WrappedDecimal")))
 
             Data curCell = new Data() from cellType
             Data curArray[] = new Data[] from arrayType
 
+            out.print("1 \n")
+
             // Construct the array itself. 
             for (int i = 0; i < decArray.arrayLength; i++) {
+                out.print("2 \n")
                 curCell:.0 = decArray[i]
-                curArray = new Data[](curArray, rclone curCell)
+                out.print("3 \n")
+                curArray = new Data[](curArray, /* rclone */ curCell)
                 }
 
             return curArray

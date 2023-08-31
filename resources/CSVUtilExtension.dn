@@ -12,10 +12,10 @@ uses data.String
 
 interface CSVUtilExtension
 {
-    bool addColumn(char filename[], bool hasHeaderLine, char separators[],
-                   Data wrappedColumn[], opt char columnName[], opt int columnNumber)
-    bool addRow(char filename[], bool hasHeaderLine, char separators[],
-                   Data wrappedRow, opt int rowNumber)
+    bool addColumn(char filename[], bool hasHeaderLine, char separators[], Data wrappedColumn[],
+                   opt char columnName[], opt int columnNumber, opt bool limitData)
+    bool addRow(char filename[], bool hasHeaderLine, char separators[], Data wrappedRow,
+                opt int rowNumber, opt bool limitData)
 
     // Auxiliary functions to help facilitate column and row addition.
     Type inferCSVTemplate(char filename[])
