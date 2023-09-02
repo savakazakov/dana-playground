@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# set -e
-
-rm non-existant.csv
-
 dnc CSVUtilExtension.dn 
 dnc CSVMain.dn 
 dana CSVMain

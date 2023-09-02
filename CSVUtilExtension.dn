@@ -5,7 +5,8 @@
  * TODO: What if the wrapped data is heterogeneous.
  * TODO: Perform some basic checks for the row data type and if it is the same as the rest of the CSV file.
  * TODO: Maybe it would be useful to write the data from a column even if it exceeds the current length of the CSV file. DONE
- * TODO: Fix the above problem for addRow.
+ * TODO: Fix the above problem for addRow. This is a lot harder, could be removed.
+ * TODO: Might be worth removing the column naming convention and parse the document as all strings as no processing of the contents is done.
  */
 
 uses data.String
@@ -35,10 +36,10 @@ stats.StatCore sc {
             return false
             }
         
-        // Save the column's cell type for convenience.
+        // Save the column cell type for convenience.
         Type columnType = typeof(wrappedColumn[0]).fields[0].type
 
-        // Check if the new column's name is valid.
+        // Check if the new column name is valid.
         char correctSuffix[]
 
         if (columnType.class == Type.INTEGER)
@@ -102,7 +103,7 @@ stats.StatCore sc {
                     }
                     else if (newTemplateType.fields[j].type.class == Type.ARRAY && 
                              newTemplateType.fields[j].type.fields[0].type.flags == Type.F_CHAR){
-                    newCsvData[i]:.j = "null"
+                    newCsvData[i]:.j = ""
                     }
                     else if (newTemplateType.fields[j].type.class == Type.INTEGER) {
                     newCsvData[i]:.j = 0
@@ -121,7 +122,7 @@ stats.StatCore sc {
                 newCsvData[i]:.columnNumber = wrappedColumn[i]:.0
                 }
                 else if (columnType.class == Type.ARRAY && columnType.fields[0].type.flags == Type.F_CHAR) {
-                newCsvData[i]:.columnNumber = "null"
+                newCsvData[i]:.columnNumber = ""
                 }
                 else if (columnType.class == Type.INTEGER) {
                 newCsvData[i]:.j = 0
@@ -141,7 +142,7 @@ stats.StatCore sc {
                     }
                     else if (newTemplateType.fields[j].type.class == Type.ARRAY && 
                              newTemplateType.fields[j].type.fields[0].type.flags == Type.F_CHAR){
-                    newCsvData[i]:.(j + 1) = "null"
+                    newCsvData[i]:.(j + 1) = ""
                     }
                     else if (newTemplateType.fields[j].type.class == Type.INTEGER) {
                     newCsvData[i]:.(j + 1) = 0
@@ -176,10 +177,23 @@ stats.StatCore sc {
         // Parse the CSV file.
         Data csvData[] = parser.parseDocument(new TextFile(filename, File.WRITE), hasHeaderLine, separators, new Data() from templateType)
 
-        // Check if the new row's dimensions are valid.
-        if (typeof(wrappedRow).fields.arrayLength == 0 || typeof(wrappedRow).fields.arrayLength < templateLength) {
+        // Check if the new row dimensions are valid.
+        if (typeof(wrappedRow).fields.arrayLength == 0 || (limitData && typeof(wrappedRow).fields.arrayLength < templateLength)) {
             throw new Exception("Parameter \"wrappedRow\" has insufficient length of $(typeof(wrappedRow).fields.arrayLength).")
             return false
+            }
+
+        // Check if the new row dimensions are insufficient and provide default values.
+        // TODO: This is very risky. What if the type provided is nothing like the current CSV file.
+        // TODO: What if the provided wrapped data is larger than a row in the CSV file.  
+        if (typeof(wrappedRow).fields.arrayLength < templateLength) {
+            Data wrappedRowTemp = new Data() from templateType
+
+            for (int i = 0; i < typeof(wrappedRow).fields.arrayLength; i++) {
+                wrappedRowTemp:.i = wrappedRow:.i
+                }
+
+            wrappedRow = wrappedRowTemp
             }
 
         // Append the new row if no preference is expressed.
@@ -313,14 +327,10 @@ stats.StatCore sc {
             Data curCell = new Data() from cellType
             Data curArray[] = new Data[] from arrayType
 
-            out.print("1 \n")
-
             // Construct the array itself. 
             for (int i = 0; i < decArray.arrayLength; i++) {
-                out.print("2 \n")
                 curCell:.0 = decArray[i]
-                out.print("3 \n")
-                curArray = new Data[](curArray, /* rclone */ curCell)
+                curArray = new Data[](curArray, rclone curCell)
                 }
 
             return curArray

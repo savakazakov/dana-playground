@@ -9,7 +9,8 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
     int App:main(AppParam params[])
     {
         Person person = new Person("Sava", 22)
-        // out.println("Value before typefield manipulation = $(person.name), $(person.age)")
+        out.println("Value before typefield manipulation = $(person.name), $(person.age)")
+        out.println("Value before typefield manipulation = $(person:.0), $(person:.1)")
 
         TypeField nameTf = Person.[name]
         TypeField ageTf = Person.[age]
@@ -19,22 +20,25 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
 
         // How do I do this?
         // "It's a bug"
-        // out.println((new String("Barry")).string)
+        out.println((new String("Barry")).string)
+        out.print("THIS")
 
         // // Doesn't work, but compiles.
-        person:.nameTf = "Barry"
+        // person:.nameTf = "Barry"
 
-        // // Doesn't work, but compiles.
-        // person:.0 = "Barry"
+        // Doesn't work, but compiles.
+        person:.0 = "Barry"
 
         // Works.
         // char str[] = "Barry"
         // person:.0 = str
 
         // // Works.
-        person:.ageTf = 25
+        // person:.ageTf = 25
+        person:.1 = 25
 
-        // out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+        out.println("Value after typefield manipulation = $(person.name), $(person.age)")
+        out.println("Value after typefield manipulation = $(person:.0), $(person:.1)")
 
         person.name = "Charlie"
         person.age = 19
@@ -94,7 +98,6 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
         // out.println("Type result = $(newPerson:.name), $(newPerson:.age)")
 
         // Type Construction.
-
         Type newType = new Type()
         newType.class = Type.DATA
 
@@ -107,11 +110,12 @@ component provides App requires io.Output out, data.StringUtil su, data.IntUtil 
 
         // Again, doesn't compile.
         // out.println("newData: $(newData.alpha), $(newData.beta)")
-        out.println("newData: $(newData:.0), $(newData:.1)")
+        out.println("newData: $(newData:.0), $(newData:.1)\n")
 
         newData:.0 = 10
         newData:.1 = -1.2
 
+        out.println("newData: $(newData:.0), $(newData:.1)\n")
         // out.println("newData after assignment: $(newData.alpha), $(newData.beta)")
         
         return 0
