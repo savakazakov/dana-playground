@@ -1,5 +1,0 @@
-#!/bin/bash
-
-dnc CSVUtilExtension.dn 
-dnc CSVMain.dn 
-dana CSVMain

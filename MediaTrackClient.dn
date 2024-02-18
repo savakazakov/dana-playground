@@ -1,0 +1,423 @@
+// TODO: I think we get too many RPCs here for subtitles and time
+//  - I think this is because of "null" or "no events" causing nothing to get streamed
+//  - so we may need to stream a "no-event" with an end time just to stop this RPC fallback happening?
+//  - TODO verify if this is really the cause...
+
+data Header {
+	const int2 CHECK_VALUE = 21524
+	int2 check
+	const int2 OP_SEND = 1
+	const int2 OP_RESPONSE = 2
+	const int2 OP_CONSTRUCT = 3
+	const int2 OP_DESTROY = 4
+	int2 operation
+	int2 funcIndex // numerical value assigned to a function [const once assigned values]
+	int8 size
+}
+
+data ConstructParams {
+	char configData[]
+	char playlistData[]
+	char componentUID[]
+	int index
+}
+
+data ConstructResult {
+	int result
+	int clientID
+	int streamPort
+	}
+
+data BuildResParams{
+	bool hasTime
+	int ms_time
+}
+
+data BuildRendParams{
+	int ms_time
+}
+
+data SetViewportParams{
+	int width
+	int height
+}
+
+data StreamDataParams {
+	int startTime
+	int endTime
+	int id
+}
+
+data StreamChunkHeader {
+	int startTime
+	int endTime
+	int resourceCmdLength
+	int renderCmdLength
+	int stateLength
+}
+
+data StreamSectionRequest {
+	int startTime
+	int endTime
+}
+
+const int MIN_HORIZON = 15000 // ms
+const int STREAM_SECTION_LENGTH = 20000 // ms
+const int MIN_REREQEUST_WINDOW = 5000 // ms: don't re-request the same data until this many milliseconds have elapsed
+
+const int RPC_FREQUENCY_LIMIT = 3000 // ms: minimum time between RPC render data request fallbacks (set to zero for no frequency limit)
+
+component provides MediaTrack(composition.PreAdaptEvents, AdaptEvents, Destructor), NetConfig requires net.TCPSocket, data.json.JSONEncoder jcoder, io.Output out, data.ByteUtil byteUtil, data.IntUtil iu, os.SystemInfo osi, StreamClient {
+
+	static char ipAddress[] = "148.88.19.49"
+	// static char ipAddress[] = "127.0.0.1"
+	static int port = 3030
+
+	static char componentUID[] = "<non>"
+
+	implementation MediaTrack {
+		TCPSocket client = new TCPSocket()
+
+		StreamClient streamClient
+
+		RenderData rdata = new RenderData()
+
+		StreamSectionRequest lastRequest // used to avoid re-requesting the same section, and to request from the correct start point for following sections
+		int lastRPC = INT_MAX
+		
+		bool DEBUG = false
+
+		bool shutdown = false
+
+		bool rpcFramesEnabled = false
+
+		char[] jsonFlatten(Data d)
+		{
+			return jcoder.jsonFromData(d, null)
+		}
+
+		char[] jsonFlattenArray(Data array[])
+		{
+			return jcoder.jsonFromArray(array, null)
+		}
+
+		void PreAdaptEvents:prepJoin()
+			{
+			MediaTrack(configData, playlistData, trackIndex, null)
+			DisplayAttributes attr = displayAttr
+			displayAttr = null
+			setDisplayAttributes(attr)
+			setViewportSize(viewportW, viewportH)
+			buildResourceCmdInit()
+			// checkBufferHorizon() // NOTE: we could trigger this early here for tracks that don't have state, if there was a way to know that...
+			}
+
+		void AdaptEvents:active()
+			{
+			// TODO: check for any changes in viewport / displayAttr, and re-call these functions if true
+			
+			// set our render state at the server
+			Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,9)
+			p.size = renderState.arrayLength
+			byte stream[] = dana.serial(p)
+			client.send(stream)
+			client.send(renderState)
+			Header h = new Header()
+			stream = dana.serial(h)
+			stream =[] client.recv(stream.arrayLength)
+			
+			if (h.check == Header.CHECK_VALUE)
+				{
+				}
+			
+			checkBufferHorizon()
+			}
+		
+		void AdaptEvents:inactive()
+			{
+			shutdown = true
+			streamClient.disconnect()
+			}
+
+		MediaTrack:MediaTrack(byte obmConfigData[], byte playlist[], int ndx, char assets[])
+			{
+			//  Uses value assigned to STS_IP & STS_PORT, if none given defaults to 10.0.1.21:2030 
+			if (osi.getVariable("STS_IP")!= null) ipAddress = osi.getVariable("STS_IP")	
+			if (osi.getVariable("STS_PORT") != null) port = iu.intFromString(osi.getVariable("STS_PORT"))
+
+			if (DEBUG == true) out.println("Entered subtitleTrack[0]")
+			// TODO: correct to Hex string and replace longer term with a utili function for correct conversion
+			char pdata[] = jsonFlatten(new ConstructParams(byteUtil.toHexString(obmConfigData), byteUtil.toHexString(playlist), componentUID, ndx))
+
+			if(DEBUG == true) out.println("SubtitleTrack [sent to server]: '$pdata'")
+
+			Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,0,pdata.arrayLength)
+			byte stream[] = dana.serial(p)
+
+			if (client.connect(ipAddress, port))
+				{
+				client.send(stream)
+				client.send(pdata)
+				Header h = new Header()
+				stream = dana.serial(h)
+				stream =[] client.recv(stream.arrayLength)
+				if(h.check != Header.CHECK_VALUE) out.println("SetViewport: Failed Header Check")
+				byte payload[] = client.recv(h.size)
+
+				out.println("result: $payload")
+
+				// now we configure our streaming data socket
+				//  - once we're connected, we spawn a new thread to start receiving data on that socket, and buffer it
+				//  - we'll then need an :inactive() function to shut that thread down
+				ConstructResult result = jcoder.jsonToData(payload, typeof(ConstructResult))
+
+				streamClient = new StreamClient(ipAddress, result.streamPort, result.clientID)
+				streamClient.connect()
+
+				configData = obmConfigData
+				playlistData = playlist
+				trackIndex = ndx
+				}
+				else
+				{
+				out.println("Could not connect to host $ipAddress")
+				}
+			
+			if(DEBUG == true) out.println("End subtitileTrack[0]")
+			}
+
+		// func 1
+		void MediaTrack:setDisplayAttributes(DisplayAttributes attr)
+			{
+			if (displayAttr != attr)
+				{
+				displayAttr = attr
+
+				if(DEBUG == true)out.println("Entered setDisplay[1]")
+				char pdata[] = jsonFlatten(attr)
+				Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,1,size=pdata.arrayLength)
+				byte stream[] = dana.serial(p)
+
+				client.send(stream)
+				client.send(pdata)
+				
+				stream =[] client.recv(stream.arrayLength)
+				if(p.check != Header.CHECK_VALUE) out.println("SetDisplay: Failed Header Check")
+				// lib.setTrackState(handle, attr.width, attr.height, attr.orientation)
+				if(DEBUG == true)out.println("End setDisplay[1]")
+				}
+			}
+
+		// function 2
+		void MediaTrack:setViewportSize(int w, int h)
+			{
+			viewportW = w
+			viewportH = h
+			
+			if(DEBUG == true)out.println("Entered setViewPoint[2]")
+			char pdata[] = jsonFlatten(new SetViewportParams(w, h))
+			Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,2,size=pdata.arrayLength)
+			byte stream[] = dana.serial(p)
+
+			client.send(stream)
+			client.send(pdata)
+			
+			Header receiveHeader = new Header()
+			stream = dana.serial(receiveHeader)
+			stream =[] client.recv(stream.arrayLength)
+			
+			if(receiveHeader.check != Header.CHECK_VALUE) out.println("SetViewport: Failed Header Check")
+			if(DEBUG == true)out.println("End setViewPoint[2]")
+			}
+		
+		// this function checks if we have enough data buffered, and requests more if not
+		// TODO: we also need a solution to seeking in the client-side, so we would ditch our current buffer and fetch a new one
+		void checkBufferHorizon()
+			{
+			int streamHorizon = streamClient.getStreamHorizon()
+
+			if (streamHorizon < streamPosition || (streamHorizon - streamPosition) < MIN_HORIZON)
+				{
+				bool makeRequest = false
+
+				int start = 0
+				int end = 0
+				char debugLR[] = "(null)"
+
+				if (lastRequest != null)
+					{
+					debugLR = "($(lastRequest.startTime)-$(lastRequest.endTime))"
+					}
+
+				if (lastRequest == null || (streamHorizon < streamPosition))
+					{
+					start = streamPosition
+					end = streamPosition + STREAM_SECTION_LENGTH
+
+					makeRequest = true
+
+					// if our request falls easily inside an existing request range, for which we're waiting for data, don't make another one
+					if (lastRequest != null && (lastRequest.startTime < start) && ((start - lastRequest.startTime) < MIN_REREQEUST_WINDOW))
+						{
+						makeRequest = false
+						}
+					}
+					else if ((lastRequest.endTime - streamPosition) < MIN_HORIZON)
+					{
+					makeRequest = true
+
+					start = lastRequest.endTime
+					end = start + STREAM_SECTION_LENGTH
+					}
+				
+				if (makeRequest)
+					{
+					out.println("[sc requesting new stream section $(start)-$(end) / SH $(streamHorizon) / SP $(streamPosition) / LR $debugLR]")
+
+					StreamDataParams params = new StreamDataParams(start, end)
+					Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,6)
+					byte stream[] = dana.serial(p)
+
+					bool ok = true
+
+					p.size = dana.serial(params).arrayLength
+					int headerLengthSent = client.send(stream)
+					int paramsLengthSent = client.send(dana.serial(params))
+					ok = (headerLengthSent == stream.arrayLength)
+					ok = (paramsLengthSent == p.size)
+
+					if (ok)
+						{
+						lastRequest = new StreamSectionRequest(start, end)
+						}
+						else
+						{
+						out.println("warning: send volume mismatch: $(headerLengthSent)/$(stream.arrayLength), $(paramsLengthSent)/$(p.size)")
+						}
+					}
+				}
+			}
+		
+		// function 3
+		byte[] MediaTrack:buildResourceCmdInit()
+			{
+			if(DEBUG == true)out.println("Entered buildResourceCmdList[3]")
+			Header p = new Header(Header.CHECK_VALUE,Header.OP_SEND,3)
+			byte stream[] = dana.serial(p)
+
+			byte serial[] = dana.serial(new BuildResParams(false))
+
+			p.size = serial.arrayLength
+
+			client.send(stream)
+			client.send(serial)
+
+			Header h = new Header()
+			stream = dana.serial(h)
+			
+			byte testStream[] = client.recv(stream.arrayLength)
+			stream =[] testStream
+			byte payload[] = client.recv(h.size)
+			if(DEBUG == true)out.println("ResourceCommandList: testStreamLength: $(testStream.arrayLength)  Payload Length: $(payload.arrayLength) ")
+			if(h.check != Header.CHECK_VALUE) out.println("SetViewport: Failed Header Check")
+			if(DEBUG == true)out.println("End buildResourceCmdList[3]")
+			return payload
+			}
+
+		// function 4
+		RenderData MediaTrack:buildRenderData(int time_ms)
+			{
+			streamPosition = time_ms
+
+			checkBufferHorizon()
+
+			StreamChunk ch = streamClient.findStreamChunk(time_ms)
+
+			if (ch != null)
+				{
+				// out.println("[sc using streamed chunk]")
+				
+				renderState = ch.stateData
+
+				rdata.resourceCmd = ch.resourceData
+				rdata.renderCmd = ch.renderData
+
+				return rdata
+				}
+				else
+				{
+				Header p
+				StreamChunkHeader h
+				byte stream[]
+				byte serial[]
+
+				if (rpcFramesEnabled && ((lastRPC > time_ms) || ((time_ms - lastRPC) >= RPC_FREQUENCY_LIMIT)))
+					{
+					out.println("[sc using RPC chunk]")
+
+					lastRPC = time_ms
+
+					// ...and then directly request the chunk we want
+					serial = dana.serial(new BuildRendParams(time_ms))
+
+					p = new Header(Header.CHECK_VALUE,Header.OP_SEND,4)
+					p.size = serial.arrayLength
+					stream = dana.serial(p)
+					client.send(stream)
+					client.send(serial)
+
+					// receive the data
+					h = new StreamChunkHeader()
+					stream = dana.serial(h)
+					byte buf[] = client.recv(stream.arrayLength)
+					
+					if (buf.arrayLength == stream.arrayLength)
+						{
+						stream =[] buf
+
+						if (h.resourceCmdLength == 0)
+							rdata.resourceCmd = null
+							else
+							rdata.resourceCmd = client.recv(h.resourceCmdLength)
+						
+						if (h.renderCmdLength == 0)
+							rdata.renderCmd = null
+							else
+							rdata.renderCmd = client.recv(h.renderCmdLength)
+						
+						if (h.stateLength != 0)
+							renderState = client.recv(h.stateLength)
+						}
+					}
+				}
+			
+			return rdata
+			}
+		
+		void Destructor:destroy()
+		{
+			out.println("Entered destroy[8]")
+			Header p = new Header(Header.CHECK_VALUE,Header.OP_DESTROY,10)
+			byte stream[] = dana.serial(p)
+			client.send(stream)
+			out.println("End destroy[8]")
+
+			shutdown = true
+			streamClient.disconnect()
+		}
+	}
+
+	implementation NetConfig {
+		void NetConfig:setEndpoint(char host[], int p)
+			{
+			ipAddress = host
+			port = p
+			}
+		
+		void NetConfig:setComponentUID(char id[])
+			{
+			componentUID = id
+			}
+	}
+
+}

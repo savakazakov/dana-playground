@@ -1,0 +1,303 @@
+#!/usr/bin/env bash
+
+# Prerequisites:
+# 1) Connect to the university's network or use the university's VPN.
+# 2) Start this script from the home directory of the project. I.e., AI4ME
+# 3) Run this script with superuser privileges.
+
+set -e
+set -o pipefail
+set -u
+
+# Some defaults for the general test.
+# SESSION=evaluation
+# SSH_PORT=6767
+# SERVER=1
+# TESTS=1
+# USER=kazakovs
+# KEY=/home/savakazakov/.ssh/AI4ME_savakazakov
+
+# # If the user wants to change some of the default parameters.
+# while [[ $# -gt 0 ]]; do
+#   case "$1" in
+#     -p)
+#       SSH_PORT="$2"
+#       shift 2
+#       ;;
+#     --port=*)
+#       SSH_PORT="${1#*=}"
+#       shift
+#       ;;
+#     -s)
+#       SERVER="$2"
+#       shift 2
+#       ;;
+#     --server=*)
+#       SERVER="${1#*=}"
+#       shift
+#       ;;
+#     -t)
+#       TESTS="$2"
+#       shift 2
+#       ;;
+#     --tests=*)
+#       TESTS="${1#*=}"
+#       shift
+#       ;;
+#     -u)
+#       USER="$2"
+#       shift 2
+#       ;;
+#     --user=*)
+#       USER="${1#*=}"
+#       shift
+#       ;;
+#     -k)
+#       KEY="$2"
+#       shift 2
+#       ;;
+#     --key=*)
+#       KEY="${1#*=}"
+#       shift
+#       ;;
+#     -mp)
+#       MAP="$2"
+#       shift 2
+#       ;;
+#     --map=*)
+#       MAP="${1#*=}"
+#       shift
+#       ;;
+#     --map)
+#       MAP="map"
+#       shift
+#       ;;
+#     *)
+#       echo "Invalid option: $1"
+#       exit 1
+#       ;;
+#   esac
+# done
+
+# # # ./test -p 1234 -s "my server" --tests=100 --user="Sava Kazakov" --key=some/direcory/like/this -mp map
+
+# echo "SSH_PORT: $SSH_PORT"
+# echo "SERVER: $SERVER"
+# echo "TESTS: $TESTS"
+# echo "USER: $USER"
+# echo "KEY: $KEY"
+# echo "MAP: $MAP"
+
+# map_ip="192.168.1.100"  # Replace with your desired IP address
+# DOCKER_MAP_PORT="8080"  # Replace with your desired port number
+
+# # nslookup scc-mc1.lancaster.ac.uk
+
+# sed -i "s/static char ipAddress\[\] = \".*\"/static char ipAddress[] = \"$map_ip\"/" MediaTrackClient.dn
+# sed -i "s/static int port = [0-9]*/static int port = $DOCKER_MAP_PORT/" MediaTrackClient.dn
+
+
+# ssh "${USER}"@scc-mc"${MAP_SERVER}".lancaster.ac.uk -p "${SSH_PORT}" -i "${KEY}" 'unzip -o -q ./evaluation/evaluation.zip -d ~/evaluation/ && rsync -a ~/evaluation'"${AI4ME_HOME}"'* ~/evaluation/ && rm -rf ~/evaluation/home && rm ~/evaluation/evaluation.zip'
+#                                                                                                                                              rsync -a --remove-source-files /home/kazakovs/evaluation/home/savakazakov/AI4ME/dana/ /home/kazakovs/evaluation/dana/
+
+#         tmux new-session -d -s test
+#         tmux send-keys -t test:0.0 'ssh '"${USER}"'@scc-mc'"${MAP_SERVER}"'.lancaster.ac.uk -p '"${SSH_PORT}"' -i '"${KEY}"' '\'' \
+#                                                              echo '"${SSH_PASS}"' | sudo -S ufw allow '"${DOCKER_MAP_PORT}"'; \
+#                                                              echo '"${SSH_PASS}"' | chmod +x ./evaluation/dana/dana ./evaluation/dana/dnc; \
+#                                                              ls -la ./evaluation/dana; \
+#                                                              cd ./evaluation/obm/; \
+#                                                              dnc .' C-m
+#         tmux a -t test
+
+# docker build --build-arg PORT_NUMBER="${DOCKER_MAP_PORT}" --build-arg TRACK=map --build-arg ENCODING="${MAP_ENCODING}" --tag map_image -f ~/evaluation/Dockerfile_args .
+# docker run --rm -d --name map_server --network host map_image
+
+# dana -lc "MediaTrack:map|proxies/MTC_148.88.19.49_3030.o|MediaTrack" App _assets -layers mst -column-name "MS1cmd-SScmd-TS-Cl-Hf-Lmst-T1"
+
+
+# tmux kill-session -t evaluation; ./scripts/evaluation/evaluate -ms 1
+
+# FROM ubuntu:jammy
+# ENV DEBIAN_FRONTEND=noninteractive
+# RUN apt update && apt install -y libgles2-mesa && rm -rf /var/lib/apt/lists/*
+# ADD obm /home/obm
+# ADD dana /home/dana
+# RUN chmod +x /home/dana/dana /home/dana/dnc
+# WORKDIR /home/obm/
+
+# # Define build arguments for the port number, track, and encoding.
+# ARG PORT_NUMBER
+# ARG TRACK
+# ARG ENCODING
+
+# # Print the values of the build arguments.
+# RUN echo "PORT_NUMBER: ${PORT_NUMBER}"
+# RUN echo "TRACK: ${TRACK}"
+# RUN echo "ENCODING: ${ENCODING}"
+
+# # Set CMD based on the value of ENCODING.
+# CMD /home/dana/dana -dh /home/dana/ -lc "proxies.MediaTrackDirect|proxies/MediaTrackDirect_map.o" proxies/MediaTrackServer.o
+
+
+#!/bin/bash
+
+# Command to launch
+RUN_CMD="echo test"
+# eval "${RUN_CMD}"
+
+# return 0
+
+# # eval "${RUN_CMD}"
+
+# Total number of clients to launch
+CLIENT_COUNT=3
+
+# Total period of time (in seconds)
+CLIENT_PERIOD=0
+
+CLIENT_MODE=uniform
+# uniform
+# random
+    if [[ "${CLIENT_COUNT}" = 1 ]]; then
+        :
+    elif [[ "${CLIENT_COUNT}" = 2 ]]; then
+        delays=("${CLIENT_PERIOD}")
+    else
+        if [[ "${CLIENT_MODE}" = "uniform" ]]; then
+            for ((i = 1; i < CLIENT_COUNT; i++)); do
+                delays+=($((CLIENT_PERIOD / (CLIENT_COUNT - 1))))
+            done
+        elif [[ "${CLIENT_MODE}" = "random" ]]; then
+            # Generate random timestamps and store them in an array.
+            for ((i = 0; i < CLIENT_COUNT - 2; i++)); do  
+                # Append the scaled random timestamp to the array.
+                random_timestamps+=($(echo "$((RANDOM)) / 32767 * $CLIENT_PERIOD" | bc -l))
+            done
+            
+            # Sort the array.
+            sorted_timestamps=($(printf "%s\n" "0" "${random_timestamps[@]}" "${CLIENT_PERIOD}" | sort -n))
+            
+            # Calculate the differences between consecutive elements.
+            for ((i = 1; i < CLIENT_COUNT; i++)); do
+                delays+=($(echo "${sorted_timestamps[i]} - ${sorted_timestamps[i-1]}" | bc -l))
+            done
+        fi
+    fi
+
+    # Print the sorted random numbers and their differences.
+    echo "Sorted Random Numbers:"
+    printf "%.4f\n" "${sorted_timestamps[@]}"
+    echo "Differences:"
+    printf "%.4f\n" "${delays[@]}"
+
+    # Generate CLIENT_COUNT random numbers in the range [0 - CLIENT_PERIOD].
+    for ((i = 0; i < CLIENT_COUNT - 1; i++)); do  
+        eval "${RUN_CMD}" &
+        sleep "${delays[i]}"
+    done
+
+    eval "${RUN_CMD}" &
+
+    wait
+
+    return 0
+
+# Check if CLIENT_MODE is "uniform"
+if [[ "${CLIENT_MODE}" = "uniform" ]]; then
+    for ((i = 0; i < CLIENT_COUNT; i++)); do
+        eval "${RUN_CMD}" &
+        sleep "${CLIENT_PERIOD}"
+    done
+elif [[ "${CLIENT_MODE}" = "random" ]]; then
+    # Generate random timestamps and store them in an array.
+    for ((i = 0; i < CLIENT_COUNT - 2; i++)); do  
+        # Append the scaled random timestamp to the array.
+        random_timestamps+=($(echo "$((RANDOM)) / 32767 * $CLIENT_PERIOD" | bc -l))
+    done
+    
+    # Sort the array.
+    sorted_timestamps=($(printf "%s\n" "0" "${random_timestamps[@]}" "${CLIENT_PERIOD}" | sort -n))
+    
+    # Add the difference between 0 and the first element.
+    delays+=(${sorted_timestamps[0]})
+    
+    # Calculate the differences between consecutive elements.
+    for ((i = 1; i < CLIENT_COUNT; i++)); do
+        delays+=($(echo "${sorted_timestamps[i]} - ${sorted_timestamps[i-1]}" | bc -l))
+    done
+
+    # Generate CLIENT_COUNT random numbers in the range [0 - CLIENT_PERIOD].
+    for ((i = 0; i < CLIENT_COUNT; i++)); do  
+        sleep "${delays[i]}"
+        eval "${RUN_CMD}" &
+    done
+else
+    echo "ERROR: Unsupported client launch mode: ${CLIENT_MODE}. Please use 'uniform' or 'random'."
+    exit 1
+fi
+
+# CLIENT_COUNT=8  # You can set this to the number of random numbers you want.
+# CLIENT_PERIOD=23  # You can set this to your desired range.
+
+# # Generate random timestamps and store them in an array.
+# for ((i = 0; i < CLIENT_COUNT - 1; i++)); do  
+#     # Append the scaled random timestamp to the array.
+#     random_timestamps+=($(echo "$((RANDOM)) / 32767 * $CLIENT_PERIOD" | bc -l))
+# done
+
+# # Sort the array.
+# sorted_timestamps=($(printf "%s\n" "${random_timestamps[@]}" "${CLIENT_PERIOD}" | sort -n))
+
+# # Calculate the differences between consecutive elements.
+# delays+=(${sorted_timestamps[0]})  # Add the difference between 0 and the first element.
+# for ((i = 1; i < CLIENT_COUNT; i++)); do
+#     delays+=($(echo "${sorted_timestamps[i]} - ${sorted_timestamps[i-1]}" | bc -l))
+# done
+
+# # Print the sorted random numbers and their differences.
+# echo "Sorted Random Numbers:"
+# printf "%.4f\n" "${sorted_timestamps[@]}"
+
+# echo "Differences:"
+# printf "%.4f\n" "${delays[@]}"
+
+# # Loop to launch clients
+# for ((i = 0; i < N; i++)); do
+#     RUN_CMD &
+#     sleep $delay
+# done
+
+# # Wait for all clients to finish
+# wait
+
+#!/bin/bash
+
+# Check if the CLIENT_PERIOD variable is set and is a positive float
+# if [[ -z "$CLIENT_PERIOD" || ! "$CLIENT_PERIOD" =~ ^[0-9]+(\.[0-9]+)?$ || "$CLIENT_PERIOD" == 0 ]]; then
+#   echo "Error: CLIENT_PERIOD is not a valid positive float."
+#   exit 1
+# fi
+
+# # Check if the number of random numbers to generate (N) is provided as a command line argument
+
+
+# # Generate and print CLIENT_COUNT random numbers in the range [0 - CLIENT_PERIOD].
+# for ((i=0; i<CLIENT_COUNT; i++)); do  
+#   # Append the scaled random number to the array.
+#   random_numbers+=($(echo "$((RANDOM)) / 32767 * $CLIENT_PERIOD" | bc -l))
+# done
+
+# echo "Random Numbers:"
+# for ((i=0; i<CLIENT_COUNT; i++)); do
+#   echo "Random Number $((i+1)): ${random_numbers[i]}"
+# done
+
+#!/bin/bash
+
+# Define the variables
+# map_ip="192.168.1.100"  # Replace with your desired IP address
+# DOCKER_MAP_PORT="8080"  # Replace with your desired port number
+
+# Use sed to substitute the IP address and port in the file
+# sed -i '/^\/\/.*static char ipAddress/s/"[^"]*"/"'$map_ip'"/' MediaTrackClient.dn
+# sed -i '/^static int port/s/[0-9][0-9]*/'$DOCKER_MAP_PORT'/' MediaTrackClient.dn
